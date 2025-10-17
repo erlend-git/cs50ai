@@ -10,7 +10,6 @@
             "request": "launch",
             "program": "${workspaceFolder}/runner.py",
             "console": "integratedTerminal",
-            "args": "${command:pickArgs}"
         }
     ]
 }
