@@ -232,18 +232,17 @@ class MinesweeperAI():
         # dont wanna add [4,4] = 1 , [4,4],[4,2] = 2 etc
         # this knowledge is already persisted in the updated worldstate ( mines and safes )
 
-        def update_knowledge():
+       
+        add_new_knowledge = True
+        for safe_cell in new_knowledge.known_safes():
+            self.mark_safe(safe_cell)
+            add_new_knowledge = False
+        for mine_cell in new_knowledge.known_mines():
+            self.mark_mine(mine_cell)
+            add_new_knowledge = False
 
-            add_new_knowledge = True
-            for safe_cell in new_knowledge.known_safes():
-                self.mark_safe(safe_cell)
-                add_new_knowledge = False
-            for mine_cell in new_knowledge.known_mines():
-                self.mark_mine(mine_cell)
-                add_new_knowledge = False
-
-            if new_knowledge.is_empty():
-                add_new_knowledge = False
+        if new_knowledge.is_empty():
+            add_new_knowledge = False
 
 
         # update past knowledge
@@ -269,15 +268,28 @@ class MinesweeperAI():
                     # dont check against itself
                     if(k1 == k2): break
                     if k1.cells.issubset(k2.cells):
+
+                        # for now i just update the superset with the inferred knowledge
                         print ("found subset: ", k1, k2)
 
                         b4 = copy.deepcopy(k2)
                         diff = k2.cells - k1.cells
                         k2.cells = diff
                         k2.count = k2.count - k1.count
-
+                        
                         print ("before:", b4)
                         print ("after:", k2)
+                        #cleanup later, updatering world with new sentence
+                        for safe_cell in list(k2.known_safes()):
+                            self.mark_safe(safe_cell)
+                           
+                        for mine_cell in list(k2.known_mines()):
+                            self.mark_mine(mine_cell)
+                      
+
+                        
+
+                        
 
 
             
@@ -322,7 +334,7 @@ class MinesweeperAI():
 
         available_moves = all_squares - self.mines - self.moves_made
 
-        return random.choice(list(available_moves))
+        return random.choice(list(available_moves)) or None
         
 
 
