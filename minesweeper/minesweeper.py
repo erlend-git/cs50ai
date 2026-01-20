@@ -1,6 +1,6 @@
 import itertools
 import random
-
+from typing import List
 
 class Minesweeper():
     """
@@ -100,6 +100,8 @@ class Sentence():
 
     def __str__(self):
         return f"{self.cells} = {self.count}"
+    def __repr__(self):
+        return self.__str__()
 
     def known_mines(self):
         """
@@ -161,12 +163,13 @@ class MinesweeperAI():
         self.safes = set()
 
         # List of sentences about the game known to be true
-        self.knowledge = []
+        self.knowledge: List[Sentence] = []
 
     def mark_mine(self, cell):
         """
         Marks a cell as a mine, and updates all knowledge
         to mark that cell as a mine as well.
+
         """
         self.mines.add(cell)
         for sentence in self.knowledge:
@@ -215,20 +218,42 @@ class MinesweeperAI():
             new_knowledge.mark_safe(safe)
         
 
-        # Inference
+        # update worldstate
+        # dont add to agents knowledge if no new knowledge can be inferred anyway
+        # dont wanna add [4,4] = 1 , [4,4],[4,2] = 2 etc
+        # this knowledge is already persisted in the updated worldstate ( mines and safes )
+        add_new_knowledge = True
         for safe_cell in new_knowledge.known_safes():
             self.mark_safe(safe_cell)
+            add_new_knowledge = False
         for mine_cell in new_knowledge.known_mines():
             self.mark_mine(mine_cell)
-
-        for knowledge in self.knowledge:
-            print("\nk", knowledge)
+            add_new_knowledge = False
 
 
-        self.knowledge.append(new_knowledge)
+        # dont wanna add [4,4] = 1 , [4,4],[4,2] = 2 etc
+        if(add_new_knowledge):
+          self.knowledge.append(new_knowledge)
+          print("adding new knowledge:", new_knowledge)
+
+        # infer
         self.knowledge.sort(key=lambda sentence: len(sentence.cells))
 
+
+        print("Current knowledge" , self.knowledge)
+        for k1 in self.knowledge:
+                for k2 in self.knowledge:
+                    # dont check against itself
+                    if(k1 == k2): break
+                    if k1.cells.issubset(k2.cells):
+                        print ("found subset: ", k1, k2)
+
+            
+        # only add knowledge if its actually useful. not empty set = 0
+      
         
+
+        print("------- KNOWN ATM -----------------")
        
 
     def make_safe_move(self):
@@ -244,7 +269,16 @@ class MinesweeperAI():
         return move
 
 
+    def make_best_guess(self):
+        # default = 8 mines / 64 squares = 1/8 chance of death in opener
+         
+        death_first_move = self.mines / self.width*self.height 
 
+        # if we know a square but cant make any inferences our best guess is a random one outside of any mine candidates
+        # why? because the best scenario is a 1 square with 8 surrounding mine candidates. 1/8 = 1/8
+
+        return
+        
     def make_random_move(self):
 
         all_squares = set()
