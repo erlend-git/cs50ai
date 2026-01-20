@@ -161,7 +161,13 @@ while True:
 
     move = None
 
-    left, _, right = pygame.mouse.get_pressed()
+    left, middle, right = pygame.mouse.get_pressed()
+
+    #debug
+
+    if middle == 1:
+        print("debug info:")
+        time.sleep(0.2)
 
     # Check for a right-click to toggle flagging
     if right == 1 and not lost:

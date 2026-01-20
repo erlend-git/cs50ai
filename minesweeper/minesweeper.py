@@ -1,6 +1,7 @@
 import itertools
 import random
 from typing import List
+import copy
 
 class Minesweeper():
     """
@@ -99,7 +100,7 @@ class Sentence():
         return self.cells == other.cells and self.count == other.count
 
     def __str__(self):
-        return f"{self.cells} = {self.count}"
+        return f"{self.cells} = {self.count}\n"
     def __repr__(self):
         return self.__str__()
 
@@ -130,7 +131,9 @@ class Sentence():
             self.cells.remove(cell)
             self.count -= 1
 
-      
+    def is_empty(self): 
+        return len(self.cells) == 0
+        
 
     def mark_safe(self, cell):
         """
@@ -184,6 +187,8 @@ class MinesweeperAI():
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
 
+    
+
     def cell_neighbours(self,cell):
 
         
@@ -200,9 +205,16 @@ class MinesweeperAI():
         return neighbours
 
 
+
+    def update_sentence(self,sentence):
+        for mine in self.mines:
+            sentence.mark_mine(mine)
+        for safe in self.safes:
+            sentence.mark_safe(safe)
+
     def add_knowledge(self, cell, count):
 
-        print("cell: ",cell,"count: ", count)
+        
         self.moves_made.add(cell)
         self.mark_safe(cell)
 
@@ -211,24 +223,35 @@ class MinesweeperAI():
         new_knowledge = Sentence(self.cell_neighbours(cell), count) 
 
 
-        # Mark all known safes and mines
-        for mine in self.mines:
-            new_knowledge.mark_mine(mine)
-        for safe in self.safes:
-            new_knowledge.mark_safe(safe)
+        # Init sentence with known worldstate ( mines and safes )
+        self.update_sentence(new_knowledge)
         
 
         # update worldstate
         # dont add to agents knowledge if no new knowledge can be inferred anyway
         # dont wanna add [4,4] = 1 , [4,4],[4,2] = 2 etc
         # this knowledge is already persisted in the updated worldstate ( mines and safes )
-        add_new_knowledge = True
-        for safe_cell in new_knowledge.known_safes():
-            self.mark_safe(safe_cell)
-            add_new_knowledge = False
-        for mine_cell in new_knowledge.known_mines():
-            self.mark_mine(mine_cell)
-            add_new_knowledge = False
+
+        def update_knowledge():
+
+            add_new_knowledge = True
+            for safe_cell in new_knowledge.known_safes():
+                self.mark_safe(safe_cell)
+                add_new_knowledge = False
+            for mine_cell in new_knowledge.known_mines():
+                self.mark_mine(mine_cell)
+                add_new_knowledge = False
+
+            if new_knowledge.is_empty():
+                add_new_knowledge = False
+
+
+        # update past knowledge
+
+        for sentence in self.knowledge:
+            self.update_sentence(sentence)
+            if(sentence.is_empty()):
+                self.knowledge.remove(sentence)
 
 
         # dont wanna add [4,4] = 1 , [4,4],[4,2] = 2 etc
@@ -237,16 +260,25 @@ class MinesweeperAI():
           print("adding new knowledge:", new_knowledge)
 
         # infer
-        self.knowledge.sort(key=lambda sentence: len(sentence.cells))
+        self.knowledge.sort(key=lambda sentence: len(sentence.cells), reverse=True)
 
 
-        print("Current knowledge" , self.knowledge)
+        print("Current knowledge\n" , self.knowledge)
         for k1 in self.knowledge:
                 for k2 in self.knowledge:
                     # dont check against itself
                     if(k1 == k2): break
                     if k1.cells.issubset(k2.cells):
                         print ("found subset: ", k1, k2)
+
+                        b4 = copy.deepcopy(k2)
+                        diff = k2.cells - k1.cells
+                        k2.cells = diff
+                        k2.count = k2.count - k1.count
+
+                        print ("before:", b4)
+                        print ("after:", k2)
+
 
             
         # only add knowledge if its actually useful. not empty set = 0
